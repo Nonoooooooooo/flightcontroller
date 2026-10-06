@@ -5,7 +5,7 @@ import L from 'leaflet';
 const LOCATIONS = {
   viewport: {
     icao: 'LFPG',
-    name: 'FENÊTRE ACTIVE (VUE LIBRE)',
+    name: 'VUE LIBRE',
     subtitle: 'ACQUISITION DYNAMIQUE SUR LES LIMITES D\'ÉCRAN',
     isDynamic: true,
     lat: 48.8566,
@@ -282,7 +282,7 @@ let currentAtcChannelId = 'kjfk_twr';
 const flightTrails = new Map();
 const aircraftCache = new Map();
 
-const REFRESH_INTERVAL = 15;
+const REFRESH_INTERVAL = 10;
 let countdownTimer = REFRESH_INTERVAL;
 
 // Initialize Map
@@ -390,11 +390,11 @@ if (basemapSelect) {
 // Center observation crosshair
 const crosshairSvg = `
 <svg width="30" height="30" viewBox="0 0 30 30" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="15" cy="15" r="5" stroke="#0ff" stroke-width="2" fill="none"/>
-  <line x1="15" y1="0" x2="15" y2="10" stroke="#0ff" stroke-width="2"/>
-  <line x1="15" y1="20" x2="15" y2="30" stroke="#0ff" stroke-width="2"/>
-  <line x1="0" y1="15" x2="10" y2="15" stroke="#0ff" stroke-width="2"/>
-  <line x1="20" y1="15" x2="30" y2="15" stroke="#0ff" stroke-width="2"/>
+  <circle cx="15" cy="15" r="5" stroke="rgba(56, 189, 248, 0.6)" stroke-width="2" fill="none"/>
+  <line x1="15" y1="0" x2="15" y2="10" stroke="rgba(56, 189, 248, 0.6)" stroke-width="2"/>
+  <line x1="15" y1="20" x2="15" y2="30" stroke="rgba(56, 189, 248, 0.6)" stroke-width="2"/>
+  <line x1="0" y1="15" x2="10" y2="15" stroke="rgba(56, 189, 248, 0.6)" stroke-width="2"/>
+  <line x1="20" y1="15" x2="30" y2="15" stroke="rgba(56, 189, 248, 0.6)" stroke-width="2"/>
 </svg>`;
 
 const crosshairIcon = L.divIcon({
@@ -408,9 +408,9 @@ const centerMarker = L.marker([currentLoc.lat, currentLoc.lon], { icon: crosshai
 
 // Concentric radar circles
 const circleOptions = {
-  color: '#0ff',
+  color: 'rgba(56, 189, 248, 0.35)',
   weight: 1,
-  fillOpacity: 0.04,
+  fillOpacity: 0.02,
   dashArray: '5, 10'
 };
 const circle10 = L.circle([currentLoc.lat, currentLoc.lon], { radius: 10000, ...circleOptions }).addTo(map);
@@ -738,102 +738,9 @@ async function fetchAircraftDetails(icao24) {
   return fallback;
 }
 
-// Primary Flight Display (PFD) Canvas Renderer
+// Primary Flight Display (PFD) removed for sober avionics layout
 function drawPFD(plane) {
-  const canvas = document.getElementById('pfd-canvas');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const w = canvas.width;
-  const h = canvas.height;
-  const cx = w / 2;
-  const cy = h / 2;
-
-  ctx.clearRect(0, 0, w, h);
-
-  // Estimate pitch & roll from telemetry
-  const vRate = plane ? (plane.vertical_rate || 0) : 0;
-  const pitch = Math.max(-25, Math.min(25, vRate * 1.8)); // in degrees
-  const roll = 0; // standard wings level
-
-  // Sky & Ground artificial horizon
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.rotate((roll * Math.PI) / 180);
-
-  const pitchOffset = pitch * 2.2;
-  
-  // Sky
-  ctx.fillStyle = '#0f4c81';
-  ctx.fillRect(-w, -h - pitchOffset, w * 2, h + pitchOffset);
-  // Ground
-  ctx.fillStyle = '#654321';
-  ctx.fillRect(-w, -pitchOffset, w * 2, h * 2);
-
-  // Horizon line
-  ctx.strokeStyle = '#ffffff';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(-w, -pitchOffset);
-  ctx.lineTo(w, -pitchOffset);
-  ctx.stroke();
-
-  // Pitch ladder (+10, -10)
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-  ctx.lineWidth = 1.5;
-  for (let deg = -20; deg <= 20; deg += 10) {
-    if (deg === 0) continue;
-    const y = -pitchOffset - (deg * 2.2);
-    ctx.beginPath();
-    ctx.moveTo(-15, y);
-    ctx.lineTo(15, y);
-    ctx.stroke();
-  }
-  ctx.restore();
-
-  // Center aircraft crosshair symbol (yellow Boeing/Airbus style)
-  ctx.strokeStyle = '#facc15';
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(cx - 35, cy);
-  ctx.lineTo(cx - 12, cy);
-  ctx.lineTo(cx - 12, cy + 6);
-  ctx.moveTo(cx + 35, cy);
-  ctx.lineTo(cx + 12, cy);
-  ctx.lineTo(cx + 12, cy + 6);
-  ctx.moveTo(cx - 4, cy);
-  ctx.lineTo(cx + 4, cy);
-  ctx.stroke();
-
-  // Speed Tape (Left)
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-  ctx.fillRect(0, 0, 55, h);
-  ctx.strokeStyle = 'var(--hud-cyan)';
-  ctx.strokeRect(0, 0, 55, h);
-  ctx.fillStyle = '#0ff';
-  ctx.font = '11px monospace';
-  const spdKt = plane && plane.velocity ? Math.round(plane.velocity * 1.94384) : 0;
-  ctx.fillText('SPEED', 6, 14);
-  ctx.fillStyle = '#fff';
-  ctx.font = 'bold 15px monospace';
-  ctx.fillText(`${spdKt}KT`, 6, cy + 5);
-
-  // Altitude Tape (Right)
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-  ctx.fillRect(w - 65, 0, 65, h);
-  ctx.strokeStyle = 'var(--hud-cyan)';
-  ctx.strokeRect(w - 65, 0, 65, h);
-  ctx.fillStyle = '#0ff';
-  ctx.font = '11px monospace';
-  const altFt = plane && plane.alt ? Math.round(plane.alt * 3.28084) : 0;
-  ctx.fillText('ALT FT', w - 55, 14);
-  ctx.fillStyle = '#fff';
-  ctx.font = 'bold 14px monospace';
-  ctx.fillText(`${altFt}`, w - 55, cy + 5);
-
-  // VSI (Vertical Speed Indicator needle)
-  ctx.fillStyle = vRate > 0 ? '#38ef7d' : (vRate < 0 ? '#f87171' : '#fff');
-  ctx.font = '10px monospace';
-  ctx.fillText(`V/S: ${vRate > 0 ? '+' : ''}${(vRate * 196.85).toFixed(0)} FPM`, cx - 50, h - 8);
+  // Horizon artificiel désactivé
 }
 
 // Vertical Approach Profile Canvas Renderer
@@ -1418,7 +1325,7 @@ if (locationSelect) {
       
       const uiHeaderTitle = document.querySelector('h1');
       const uiHeaderSubtitle = document.querySelector('.hud-subtitle');
-      if (uiHeaderTitle) uiHeaderTitle.textContent = `${currentLoc.name} FLIGHT RADAR`;
+      if (uiHeaderTitle) uiHeaderTitle.textContent = `RADAR AÉRIEN • ${currentLoc.name}`;
       if (uiHeaderSubtitle) uiHeaderSubtitle.textContent = currentLoc.subtitle;
 
       if (currentLoc.isDynamic) {
@@ -1828,33 +1735,46 @@ async function updateFocusedPlaneUI(plane) {
       <div class="closest-plane-details">
         <div class="badge">${plane.callsign}</div>
 
-        <!-- Route Card: DEP -> ARR -->
-        <div class="route-card">
-          <div class="route-point">
-            <span class="route-code">${currentRoute.origin.code}</span>
-            <span class="route-city">${currentRoute.origin.city}</span>
+        <!-- Hero Route Card: Provenance & Destination Mises en Avant -->
+        <div class="route-hero-card">
+          <div class="route-hero-header">
+            <span class="route-section-title">ITINÉRAIRE DU VOL</span>
+            <div class="route-tags">
+              <span class="flight-phase ${currentRoute.phase.cssClass}">${currentRoute.phase.label}</span>
+              ${currentRoute.isReal ? '<span class="real-route-badge" title="Ligne officielle confirmée">RÉEL</span>' : '<span class="est-route-badge" title="Ligne estimée selon position & cap">ESTIMÉ</span>'}
+            </div>
           </div>
-          <div class="route-arrow">
-            <span>✈️</span>
-            <span class="flight-phase ${currentRoute.phase.cssClass}">${currentRoute.phase.label}</span>
-            ${currentRoute.isReal ? '<span class="real-route-badge" title="Ligne commerciale officielle confirmée">RÉEL</span>' : '<span class="est-route-badge" title="Ligne estimée selon position & cap">ESTIMÉ</span>'}
-          </div>
-          <div class="route-point" style="text-align: right;">
-            <span class="route-code">${currentRoute.destination.code}</span>
-            <span class="route-city">${currentRoute.destination.city}</span>
+
+          <div class="route-airports-row">
+            <div class="route-col origin-col">
+              <span class="route-label">PROVENANCE</span>
+              <span class="route-iata">${currentRoute.origin.code}</span>
+              <span class="route-city-name">${currentRoute.origin.city}</span>
+              <span class="route-airport-full" title="${currentRoute.origin.name}">${currentRoute.origin.name}</span>
+            </div>
+
+            <div class="route-flight-path">
+              <div class="route-line-decor">
+                <span class="decor-dot"></span>
+                <span class="decor-line"></span>
+                <span class="decor-plane">✈️</span>
+                <span class="decor-line"></span>
+                <span class="decor-dot"></span>
+              </div>
+              <span class="route-dist-eta">${Math.round(currentRoute.remainingDist)} km • ETA ${currentRoute.etaFormatted}</span>
+            </div>
+
+            <div class="route-col dest-col">
+              <span class="route-label">DESTINATION</span>
+              <span class="route-iata">${currentRoute.destination.code}</span>
+              <span class="route-city-name">${currentRoute.destination.city}</span>
+              <span class="route-airport-full" title="${currentRoute.destination.name}">${currentRoute.destination.name}</span>
+            </div>
           </div>
         </div>
 
         <div class="detail-row">
-          <span>DESTINATION</span>
-          <span class="highlight">${currentRoute.destination.name}</span>
-        </div>
-        <div class="detail-row">
-          <span>ESTIMATION ARRIVÉE</span>
-          <span style="color: #38ef7d;">${currentRoute.etaFormatted} (${Math.round(currentRoute.remainingDist)} km)</span>
-        </div>
-        <div class="detail-row">
-          <span>MODÈLE</span>
+          <span>MODÈLE D'APPAREIL</span>
           <span id="closest-model" class="model-highlight">Recherche...</span>
         </div>
         <div class="detail-row">
@@ -1862,20 +1782,20 @@ async function updateFocusedPlaneUI(plane) {
           <span id="closest-operator" class="operator-badge">${plane.country}</span>
         </div>
         <div class="detail-row">
-          <span>DISTANCE DU CENTRE</span>
-          <span class="highlight">${plane.dist.toFixed(2)} km</span>
-        </div>
-        <div class="detail-row">
           <span>ALTITUDE</span>
-          <span>${formatAlt(plane.alt)}</span>
+          <span class="telemetry-value">${formatAlt(plane.alt)}</span>
         </div>
         <div class="detail-row">
           <span>VITESSE SOL</span>
-          <span>${formatSpeed(plane.velocity)}</span>
+          <span class="telemetry-value">${formatSpeed(plane.velocity)}</span>
         </div>
         <div class="detail-row">
           <span>CAP MAGNÉTIQUE</span>
-          <span>${Math.round(plane.true_track || 0)}°</span>
+          <span class="telemetry-value">${Math.round(plane.true_track || 0)}°</span>
+        </div>
+        <div class="detail-row">
+          <span>DISTANCE DU CENTRE</span>
+          <span class="highlight">${plane.dist.toFixed(1)} km</span>
         </div>
       </div>
     `;

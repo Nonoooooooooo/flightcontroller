@@ -12,14 +12,16 @@
 <body>
   <div id="app">
     <div id="map"></div>
+    <!-- 10-second subtle radar sweep beam -->
+    <div id="radar-sweep" aria-hidden="true"></div>
 
     <!-- HUD Overlay -->
     <div id="hud-overlay">
       <!-- Main HUD Header -->
       <div class="hud-header">
         <div>
-          <h1>PARIS FLIGHT RADAR</h1>
-          <div class="hud-subtitle">AVIONICS HUD & SURVEILLANCE SECTORIELLE</div>
+          <h1>RADAR AÉRIEN • PARIS</h1>
+          <div class="hud-subtitle">SURVEILLANCE SECTORIELLE EN TEMPS RÉEL</div>
         </div>
 
         <!-- Search Bar -->
@@ -33,7 +35,7 @@
             <label for="location-select">SECTEUR</label>
             <select id="location-select">
               <optgroup label="Vaste Échelle & Navigation Libre">
-                <option value="viewport">🌐 FENÊTRE ACTIVE (Navigation libre)</option>
+                <option value="viewport">🌐 VUE LIBRE (Écran actif)</option>
                 <option value="europe">🇪🇺 EUROPE ENTIÈRE (~3 500 vols)</option>
                 <option value="france">🇫🇷 FRANCE ENTIÈRE (~1 200 vols)</option>
               </optgroup>
@@ -185,7 +187,7 @@
         </div>
       </div>
 
-      <!-- Main Sidebar HUD (Flight details, PFD, Profiles) -->
+      <!-- Main Sidebar HUD (Flight details, Profile) -->
       <div id="sidebar">
         <!-- Targeted Plane Panel -->
         <div class="panel">
@@ -193,12 +195,6 @@
             <h2 id="sidebar-title">APPAREIL CIBLÉ</h2>
             <button id="btn-reset-selection" class="reset-btn"
               title="Désélectionner et revenir au plus proche">RÉINITIALISER</button>
-          </div>
-
-          <!-- Primary Flight Display (PFD) Canvas -->
-          <div class="pfd-container">
-            <div class="pfd-title">PRIMARY FLIGHT DISPLAY (PFD)</div>
-            <canvas id="pfd-canvas" width="340" height="130"></canvas>
           </div>
 
           <!-- Vertical Climb/Descent Profile Canvas -->
@@ -219,7 +215,7 @@
           </div>
           <div class="stat-row">
             <span>PROCHAIN BALAYAGE</span>
-            <span id="countdown" class="highlight">15s</span>
+            <span id="countdown" class="highlight">10s</span>
           </div>
         </div>
       </div>
