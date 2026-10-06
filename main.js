@@ -130,6 +130,15 @@ const LOCATIONS = {
     lon: 139.7798,
     zoom: 11,
     bbox: { lamin: 35.35, lamax: 35.75, lomin: 139.55, lomax: 140.0 }
+  },
+  icn: {
+    icao: 'RKSI',
+    name: 'SÉOUL INCHEON (ICN)',
+    subtitle: 'ESPACE AÉRIEN SUD-CORÉEN & CAPITALE SÉOUL',
+    lat: 37.5665,
+    lon: 126.9780,
+    zoom: 11,
+    bbox: { lamin: 37.25, lamax: 37.85, lomin: 126.35, lomax: 127.35 }
   }
 };
 
@@ -259,7 +268,11 @@ const AIRPORTS = {
   NRT: { code: 'NRT', icao: 'RJAA', name: 'Tokyo Narita', city: 'Tokyo', country: 'Japon', lat: 35.7720, lon: 140.3929 },
   RJAA: { code: 'NRT', icao: 'RJAA', name: 'Tokyo Narita', city: 'Tokyo', country: 'Japon', lat: 35.7720, lon: 140.3929 },
   SIN: { code: 'SIN', icao: 'WSSS', name: 'Singapore Changi', city: 'Singapour', country: 'Singapour', lat: 1.3644, lon: 103.9915 },
-  WSSS: { code: 'SIN', icao: 'WSSS', name: 'Singapore Changi', city: 'Singapour', country: 'Singapour', lat: 1.3644, lon: 103.9915 }
+  WSSS: { code: 'SIN', icao: 'WSSS', name: 'Singapore Changi', city: 'Singapour', country: 'Singapour', lat: 1.3644, lon: 103.9915 },
+  ICN: { code: 'ICN', icao: 'RKSI', name: 'Incheon International', city: 'Séoul', country: 'Corée du Sud', lat: 37.4602, lon: 126.4407 },
+  RKSI: { code: 'ICN', icao: 'RKSI', name: 'Incheon International', city: 'Séoul', country: 'Corée du Sud', lat: 37.4602, lon: 126.4407 },
+  GMP: { code: 'GMP', icao: 'RKSS', name: 'Gimpo International', city: 'Séoul', country: 'Corée du Sud', lat: 37.5583, lon: 126.7906 },
+  RKSS: { code: 'GMP', icao: 'RKSS', name: 'Gimpo International', city: 'Séoul', country: 'Corée du Sud', lat: 37.5583, lon: 126.7906 }
 };
 
 let currentLoc = LOCATIONS.paris_center;
@@ -295,6 +308,11 @@ L.control.attribution({ position: 'bottomright' }).addTo(map);
 
 // Basemap configurations
 const basemapLayers = {
+  midnight_gold: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap &bull; Midnight Gold',
+    className: 'midnight-gold-tiles',
+    maxZoom: 19
+  }),
   satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
     attribution: '&copy; Esri',
     maxZoom: 19
@@ -343,8 +361,11 @@ const basemapLayers = {
   })
 };
 
-let currentBasemap = basemapLayers.satellite.addTo(map);
-let currentVisionMode = 'satellite';
+let currentBasemap = basemapLayers.midnight_gold.addTo(map);
+let currentVisionMode = 'midnight_gold';
+
+const mapElInit = document.getElementById('map');
+if (mapElInit) mapElInit.classList.add('theme-midnight-gold');
 
 // Basemap switcher
 const basemapSelect = document.getElementById('basemap-select');
@@ -356,26 +377,30 @@ if (basemapSelect) {
       map.removeLayer(currentBasemap);
       currentBasemap = basemapLayers[selected].addTo(map);
 
-      // Toggle container CSS classes for CRT scanlines / Brutalist contrast
+      // Toggle container CSS classes for vision modes
       const mapEl = document.getElementById('map');
       if (mapEl) {
+        mapEl.classList.toggle('theme-midnight-gold', selected === 'midnight_gold');
         mapEl.classList.toggle('theme-crt-vintage', selected === 'crt_vintage');
         mapEl.classList.toggle('theme-brutalist', selected === 'brutalist');
         mapEl.classList.toggle('theme-nasa', selected === 'nasa');
       }
 
       // Adapt range circle colors to vision mode
-      let circleColor = '#00ffff';
-      let circleOpacity = 0.04;
-      if (selected === 'crt_vintage') {
-        circleColor = '#39ff14';
-        circleOpacity = 0.08;
+      let circleColor = 'rgba(56, 189, 248, 0.35)';
+      let circleOpacity = 0.02;
+      if (selected === 'midnight_gold') {
+        circleColor = '#d4af37';
+        circleOpacity = 0.05;
+      } else if (selected === 'crt_vintage') {
+        circleColor = '#22c55e';
+        circleOpacity = 0.06;
       } else if (selected === 'brutalist') {
         circleColor = '#ffffff';
         circleOpacity = 0.07;
       } else if (selected === 'flir') {
-        circleColor = '#ffb000';
-        circleOpacity = 0.06;
+        circleColor = '#f59e0b';
+        circleOpacity = 0.05;
       }
 
       circle10.setStyle({ color: circleColor, fillOpacity: circleOpacity });
@@ -1591,7 +1616,8 @@ function renderPlanes() {
     const trail = flightTrails.get(plane.icao24);
     if (trail && trail.length > 1) {
       let trailColor = isFocused ? '#f59e0b' : 'rgba(56, 189, 248, 0.4)';
-      if (currentVisionMode === 'crt_vintage') trailColor = isFocused ? '#facc15' : 'rgba(74, 222, 128, 0.5)';
+      if (currentVisionMode === 'midnight_gold') trailColor = isFocused ? '#ffb703' : 'rgba(229, 184, 78, 0.45)';
+      else if (currentVisionMode === 'crt_vintage') trailColor = isFocused ? '#facc15' : 'rgba(74, 222, 128, 0.5)';
       else if (currentVisionMode === 'brutalist') trailColor = isFocused ? '#f59e0b' : 'rgba(255, 255, 255, 0.45)';
 
       const trailLine = L.polyline(trail, {
@@ -1607,7 +1633,10 @@ function renderPlanes() {
     let planeColor = isFocused ? '#f59e0b' : '#e2e8f0';
     let strokeColor = isFocused ? '#78350f' : '#0f172a';
 
-    if (currentVisionMode === 'crt_vintage') {
+    if (currentVisionMode === 'midnight_gold') {
+      planeColor = isFocused ? '#ffb703' : '#fef08a';
+      strokeColor = isFocused ? '#78350f' : '#1e1b18';
+    } else if (currentVisionMode === 'crt_vintage') {
       planeColor = isFocused ? '#facc15' : '#4ade80';
       strokeColor = isFocused ? '#713f12' : '#052e16';
     } else if (currentVisionMode === 'brutalist') {
