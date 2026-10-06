@@ -308,11 +308,29 @@ L.control.attribution({ position: 'bottomright' }).addTo(map);
 
 // Basemap configurations
 const basemapLayers = {
-  midnight_gold: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap &bull; Midnight Gold',
-    className: 'midnight-gold-tiles',
-    maxZoom: 19
-  }),
+  midnight_gold: L.layerGroup([
+    // 1. Base océans et terres avec contrastes côtiers nets
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+      attribution: '&copy; Esri &bull; Midnight Gold',
+      className: 'midnight-gold-base',
+      maxZoom: 19,
+      maxNativeZoom: 16
+    }),
+    // 2. Côtes maritimes, rivages et frontières dessinés en filigrane d'or
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+      attribution: '&copy; Esri Boundaries',
+      className: 'midnight-gold-boundaries',
+      maxZoom: 19,
+      maxNativeZoom: 19
+    }),
+    // 3. Principaux axes routiers, autoroutes, rocades et ponts en or 24K éclatant
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', {
+      attribution: '&copy; Esri Transportation',
+      className: 'midnight-gold-roads',
+      maxZoom: 19,
+      maxNativeZoom: 19
+    })
+  ]),
   satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
     attribution: '&copy; Esri',
     maxZoom: 19
