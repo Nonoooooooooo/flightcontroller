@@ -2,16 +2,12 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
-      "source": "/api/:match*",
-      "destination": "https://opensky-network.org/api/:match*"
-    },
-    {
-      "source": "/hexdb/:match*",
-      "destination": "https://hexdb.io/:match*"
+      "source": "/hexdb/:path*",
+      "destination": "/api/hexdb/:path*"
     },
     {
       "source": "/metar",
-      "destination": "https://aviationweather.gov/api/data/metar"
+      "destination": "/api/metar"
     }
   ]
 }
