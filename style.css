@@ -42,36 +42,6 @@ body {
   z-index: 1;
 }
 
-/* 10-second subtle radar sweep beam */
-#radar-sweep {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: max(140vw, 140vh);
-  height: max(140vw, 140vh);
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  z-index: 2;
-  border-radius: 50%;
-  background: conic-gradient(
-    from 0deg,
-    rgba(56, 189, 248, 0.08) 0deg,
-    rgba(56, 189, 248, 0.02) 20deg,
-    transparent 35deg,
-    transparent 360deg
-  );
-  animation: radarSweepRotate 10s linear infinite;
-  opacity: 0.75;
-}
-
-@keyframes radarSweepRotate {
-  from {
-    transform: translate(-50%, -50%) rotate(0deg);
-  }
-  to {
-    transform: translate(-50%, -50%) rotate(360deg);
-  }
-}
 
 #hud-overlay {
   position: absolute;

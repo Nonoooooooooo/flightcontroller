@@ -761,7 +761,8 @@ async function fetchAircraftDetails(icao24) {
   if (aircraftCache.has(key)) return aircraftCache.get(key);
 
   try {
-    const res = await fetch(`/hexdb/api/v1/aircraft/${key}`);
+    let res = await fetch(`/api/hexdb?hex=${key}`);
+    if (!res.ok) res = await fetch(`/hexdb/api/v1/aircraft/${key}`);
     if (res.ok) {
       const data = await res.json();
       if (data && !data.error) {

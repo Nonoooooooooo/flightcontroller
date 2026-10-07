@@ -2,12 +2,24 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
+      "source": "/api/states/all",
+      "destination": "/api/states/all"
+    },
+    {
+      "source": "/api/routes",
+      "destination": "/api/routes"
+    },
+    {
       "source": "/api/planespotters",
       "destination": "/api/planespotters"
     },
     {
-      "source": "/hexdb/:path*",
-      "destination": "/api/hexdb/:path*"
+      "source": "/api/hexdb",
+      "destination": "/api/hexdb"
+    },
+    {
+      "source": "/hexdb/api/v1/aircraft/:hex",
+      "destination": "/api/hexdb?hex=:hex"
     },
     {
       "source": "/metar",

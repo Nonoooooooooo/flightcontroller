@@ -9,35 +9,35 @@ export default async function handler(req, res) {
 
   try {
     const searchParams = new URLSearchParams();
-    searchParams.set('format', 'json');
-
     for (const [key, value] of Object.entries(req.query || {})) {
       if (Array.isArray(value)) {
         value.forEach(v => searchParams.append(key, v));
       } else if (value !== undefined && value !== null) {
-        searchParams.set(key, value);
+        searchParams.append(key, value);
       }
     }
 
     const qs = searchParams.toString();
-    const targetUrl = `https://aviationweather.gov/api/data/metar${qs ? `?${qs}` : ''}`;
+    const targetUrl = `https://opensky-network.org/api/states/all${qs ? `?${qs}` : ''}`;
 
     const response = await fetch(targetUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'User-Agent': 'FlightRadarAvionics/1.0 (+https://flightcontroller.vercel.app; contact@flightcontroller.app)',
         'Accept': 'application/json'
       }
     });
 
     if (!response.ok) {
-      return res.status(response.status).json([]);
+      console.warn(`OpenSky returned HTTP ${response.status}`);
+      return res.status(response.status).json({ time: Math.floor(Date.now() / 1000), states: [] });
     }
 
     const data = await response.json();
-    res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=120');
+    // Cache for 6 seconds at the Edge to avoid hitting OpenSky rate limits
+    res.setHeader('Cache-Control', 's-maxage=6, stale-while-revalidate=12');
     return res.status(200).json(data);
   } catch (error) {
-    console.error('METAR proxy error:', error);
-    return res.status(500).json({ error: error.message || 'METAR proxy error' });
+    console.error('OpenSky states proxy error:', error);
+    return res.status(500).json({ time: Math.floor(Date.now() / 1000), states: [], error: error.message });
   }
 }
