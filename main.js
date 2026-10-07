@@ -379,11 +379,11 @@ const basemapLayers = {
   })
 };
 
-let currentBasemap = basemapLayers.midnight_gold.addTo(map);
-let currentVisionMode = 'midnight_gold';
+let currentBasemap = basemapLayers.satellite.addTo(map);
+let currentVisionMode = 'satellite';
 
 const mapElInit = document.getElementById('map');
-if (mapElInit) mapElInit.classList.add('theme-midnight-gold');
+if (mapElInit) mapElInit.classList.remove('theme-midnight-gold');
 
 // Basemap switcher
 const basemapSelect = document.getElementById('basemap-select');
