@@ -1691,16 +1691,63 @@ async function fetchFlightData() {
     }
 
     const { lamin, lomin, lamax, lomax } = bbox;
-    const url = `/api/states/all?lamin=${lamin.toFixed(3)}&lomin=${lomin.toFixed(3)}&lamax=${lamax.toFixed(3)}&lomax=${lomax.toFixed(3)}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
-    const data = await res.json();
-    
-    // Parse plane states
     const refLat = currentLoc.isDynamic ? map.getCenter().lat : currentLoc.lat;
     const refLon = currentLoc.isDynamic ? map.getCenter().lng : currentLoc.lon;
 
-    latestStates = (data.states || []).map(state => {
+    let rawStates = [];
+
+    // 1. Try our high-speed serverless proxy endpoint
+    try {
+      const url = `/api/states/all?lamin=${lamin.toFixed(3)}&lomin=${lomin.toFixed(3)}&lamax=${lamax.toFixed(3)}&lomax=${lomax.toFixed(3)}`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.states) && data.states.length > 0) {
+          rawStates = data.states;
+        }
+      }
+    } catch (e1) {
+      console.warn('Proxy fetch failed, attempting direct ADS-B fallback:', e1);
+    }
+
+    // 2. Client-side direct fallback if proxy returned 0 planes or was blocked
+    if (rawStates.length === 0) {
+      try {
+        const radiusNm = Math.min(250, Math.max(30, Math.round(calculateDistance(lamin, lomin, lamax, lomax) / 3.7)));
+        const directUrl = `https://api.adsb.lol/v2/point/${refLat.toFixed(4)}/${refLon.toFixed(4)}/${radiusNm}`;
+        const directRes = await fetch(directUrl);
+        if (directRes.ok) {
+          const directData = await directRes.json();
+          const nowSec = Math.floor(Date.now() / 1000);
+          rawStates = (directData.ac || [])
+            .filter(a => a.lat != null && a.lon != null)
+            .map(a => [
+              (a.hex || '').toLowerCase(),
+              (a.flight || a.r || 'UNKNOWN').trim(),
+              'International',
+              nowSec,
+              nowSec,
+              a.lon,
+              a.lat,
+              a.alt_baro === 'ground' ? 0 : (typeof a.alt_baro === 'number' ? Math.round(a.alt_baro * 0.3048) : null),
+              a.alt_baro === 'ground',
+              typeof a.gs === 'number' ? a.gs * 0.514444 : 0,
+              a.track || 0,
+              typeof a.baro_rate === 'number' ? a.baro_rate * 0.00508 : 0,
+              null,
+              a.alt_geom ? Math.round(a.alt_geom * 0.3048) : null,
+              a.squawk || null,
+              false,
+              0
+            ]);
+        }
+      } catch (e2) {
+        console.warn('Direct ADS-B fallback also failed:', e2);
+      }
+    }
+
+    // Parse plane states
+    latestStates = rawStates.map(state => {
       const icao24 = state[0];
       const callsign = (state[1] || 'UNKNOWN').trim();
       const country = state[2] || 'N/A';
@@ -1733,7 +1780,7 @@ async function fetchFlightData() {
 
     renderPlanes();
   } catch (err) {
-    console.error('Error fetching OpenSky data:', err);
+    console.error('Error fetching flight data:', err);
   }
 }
 
