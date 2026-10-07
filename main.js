@@ -1445,8 +1445,9 @@ function startAtcPlayback() {
   const channel = ATC_CHANNELS[currentAtcChannelId] || ATC_CHANNELS.kjfk_twr;
   
   if (!atcAudio) {
-    atcAudio = new Audio();
+    atcAudio = document.getElementById('atc-audio-player') || new Audio();
     atcAudio.preload = 'none';
+    atcAudio.referrerPolicy = 'no-referrer';
 
     atcAudio.addEventListener('playing', () => {
       updateAtcUI('LIVE 🟢', true);
@@ -1457,7 +1458,7 @@ function startAtcPlayback() {
     });
 
     atcAudio.addEventListener('error', (e) => {
-      console.warn('ATC Audio Stream Error:', e);
+      console.warn('ATC Audio Stream Error:', e, atcAudio.error);
       if (atcActive) {
         updateAtcUI('ERREUR FLUX', false, true);
       }
@@ -1465,7 +1466,7 @@ function startAtcPlayback() {
   }
 
   atcAudio.volume = atcVolume;
-  // Cache busting query to immediately link to real-time stream broadcast edge
+  atcAudio.referrerPolicy = 'no-referrer';
   atcAudio.src = `${channel.url}?nocache=${Date.now()}`;
   atcAudio.load();
   

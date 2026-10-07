@@ -4,6 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="referrer" content="no-referrer" />
   <title>Paris Flight Radar Avionics HUD</title>
   <link rel="stylesheet" href="/style.css">
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
@@ -233,7 +234,8 @@
         </div>
       </div>
     </div>
-  </div>
+  <!-- Dedicated Live ATC Audio Player (No Referer Policy) -->
+  <audio id="atc-audio-player" preload="none" referrerpolicy="no-referrer"></audio>
 
   <script type="module" src="/main.js"></script>
 </body>
