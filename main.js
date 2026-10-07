@@ -404,61 +404,10 @@ if (basemapSelect) {
         mapEl.classList.toggle('theme-nasa', selected === 'nasa');
       }
 
-      // Adapt range circle colors to vision mode
-      let circleColor = 'rgba(56, 189, 248, 0.35)';
-      let circleOpacity = 0.02;
-      if (selected === 'midnight_gold') {
-        circleColor = '#d4af37';
-        circleOpacity = 0.05;
-      } else if (selected === 'crt_vintage') {
-        circleColor = '#22c55e';
-        circleOpacity = 0.06;
-      } else if (selected === 'brutalist') {
-        circleColor = '#ffffff';
-        circleOpacity = 0.07;
-      } else if (selected === 'flir') {
-        circleColor = '#f59e0b';
-        circleOpacity = 0.05;
-      }
-
-      circle10.setStyle({ color: circleColor, fillOpacity: circleOpacity });
-      circle20.setStyle({ color: circleColor, fillOpacity: circleOpacity });
-      circle30.setStyle({ color: circleColor, fillOpacity: circleOpacity });
-
       renderPlanes();
     }
   });
 }
-
-// Center observation crosshair
-const crosshairSvg = `
-<svg width="30" height="30" viewBox="0 0 30 30" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="15" cy="15" r="5" stroke="rgba(56, 189, 248, 0.6)" stroke-width="2" fill="none"/>
-  <line x1="15" y1="0" x2="15" y2="10" stroke="rgba(56, 189, 248, 0.6)" stroke-width="2"/>
-  <line x1="15" y1="20" x2="15" y2="30" stroke="rgba(56, 189, 248, 0.6)" stroke-width="2"/>
-  <line x1="0" y1="15" x2="10" y2="15" stroke="rgba(56, 189, 248, 0.6)" stroke-width="2"/>
-  <line x1="20" y1="15" x2="30" y2="15" stroke="rgba(56, 189, 248, 0.6)" stroke-width="2"/>
-</svg>`;
-
-const crosshairIcon = L.divIcon({
-  html: crosshairSvg,
-  className: 'crosshair-icon',
-  iconSize: [30, 30],
-  iconAnchor: [15, 15]
-});
-
-const centerMarker = L.marker([currentLoc.lat, currentLoc.lon], { icon: crosshairIcon }).addTo(map);
-
-// Concentric radar circles
-const circleOptions = {
-  color: 'rgba(56, 189, 248, 0.35)',
-  weight: 1,
-  fillOpacity: 0.02,
-  dashArray: '5, 10'
-};
-const circle10 = L.circle([currentLoc.lat, currentLoc.lon], { radius: 10000, ...circleOptions }).addTo(map);
-const circle20 = L.circle([currentLoc.lat, currentLoc.lon], { radius: 20000, ...circleOptions }).addTo(map);
-const circle30 = L.circle([currentLoc.lat, currentLoc.lon], { radius: 30000, ...circleOptions }).addTo(map);
 
 // Layers
 const trailsLayer = L.layerGroup().addTo(map);
@@ -736,10 +685,10 @@ function drawFlightRoute(plane, route) {
   if (!route || !route.destination || route.destination.lat == null) return;
 
   const polyline = L.polyline([[plane.lat, plane.lon], [route.destination.lat, route.destination.lon]], {
-    color: '#f59e0b',
+    color: '#0a84ff',
     weight: 2.5,
-    dashArray: '6, 8',
-    opacity: 0.9
+    dashArray: '5, 8',
+    opacity: 0.85
   });
   routeLayer.addLayer(polyline);
 
@@ -963,11 +912,11 @@ function drawProfile(plane) {
   const h = canvas.height;
 
   ctx.clearRect(0, 0, w, h);
-  ctx.fillStyle = '#050c14';
+  ctx.fillStyle = '#0c0e12';
   ctx.fillRect(0, 0, w, h);
 
   // Grid levels (FL100, FL200, FL300)
-  ctx.strokeStyle = 'rgba(0, 255, 255, 0.15)';
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(0, h * 0.33); ctx.lineTo(w, h * 0.33);
@@ -975,33 +924,33 @@ function drawProfile(plane) {
   ctx.stroke();
 
   // Runway ground target at right
-  ctx.fillStyle = '#38ef7d';
-  ctx.fillRect(w - 20, h - 4, 20, 4);
+  ctx.fillStyle = '#30d158';
+  ctx.fillRect(w - 24, h - 3, 24, 3);
 
   const alt = plane && plane.alt ? plane.alt : 5000;
   const maxAlt = 12000;
   const currentY = Math.max(8, Math.min(h - 8, h - (alt / maxAlt) * (h - 12)));
 
   // Slope line
-  ctx.strokeStyle = '#f59e0b';
+  ctx.strokeStyle = '#0a84ff';
   ctx.setLineDash([3, 3]);
   ctx.beginPath();
   ctx.moveTo(30, currentY);
-  ctx.lineTo(w - 10, h - 4);
+  ctx.lineTo(w - 12, h - 3);
   ctx.stroke();
   ctx.setLineDash([]);
 
   // Plane dot
-  ctx.fillStyle = '#f59e0b';
+  ctx.fillStyle = '#0a84ff';
   ctx.beginPath();
   ctx.arc(30, currentY, 4, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.fillStyle = '#fff';
-  ctx.font = '9px monospace';
-  ctx.fillText(`ALT: ${Math.round(alt)}m`, 38, Math.max(12, currentY - 4));
-  ctx.fillStyle = '#94a3b8';
-  ctx.fillText('PISTE (SOL)', w - 65, h - 8);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '10px -apple-system, BlinkMacSystemFont, "Inter", sans-serif';
+  ctx.fillText(`ALT ${Math.round(alt)} m`, 38, Math.max(12, currentY - 4));
+  ctx.fillStyle = '#9496a1';
+  ctx.fillText('PISTE (SOL)', w - 70, h - 7);
 }
 
 // Fetch METAR & Wind data
@@ -1540,31 +1489,8 @@ if (locationSelect) {
       if (uiHeaderTitle) uiHeaderTitle.textContent = `RADAR AÉRIEN • ${currentLoc.name}`;
       if (uiHeaderSubtitle) uiHeaderSubtitle.textContent = currentLoc.subtitle;
 
-      if (currentLoc.isDynamic) {
-        // Free viewport navigation mode: hide airport concentric circles
-        map.removeLayer(circle10);
-        map.removeLayer(circle20);
-        map.removeLayer(circle30);
-        map.removeLayer(centerMarker);
-      } else if (currentLoc.isMacro) {
-        // Macro view (Europe / France)
+      if (!currentLoc.isDynamic) {
         map.flyTo([currentLoc.lat, currentLoc.lon], currentLoc.zoom, { duration: 1.5 });
-        map.removeLayer(circle10);
-        map.removeLayer(circle20);
-        map.removeLayer(circle30);
-        map.removeLayer(centerMarker);
-      } else {
-        // Airport or city hub: re-attach concentric rings
-        map.flyTo([currentLoc.lat, currentLoc.lon], currentLoc.zoom, { duration: 1.5 });
-        circle10.addTo(map);
-        circle20.addTo(map);
-        circle30.addTo(map);
-        centerMarker.addTo(map);
-
-        centerMarker.setLatLng([currentLoc.lat, currentLoc.lon]);
-        circle10.setLatLng([currentLoc.lat, currentLoc.lon]);
-        circle20.setLatLng([currentLoc.lat, currentLoc.lon]);
-        circle30.setLatLng([currentLoc.lat, currentLoc.lon]);
       }
 
       // Automatically adapt ATC station when switching sectors
@@ -1590,19 +1516,19 @@ if (btnReset) {
   });
 }
 
-// Filter listeners
-document.querySelectorAll('.chip[data-alt]').forEach(chip => {
-  chip.addEventListener('click', (e) => {
-    document.querySelectorAll('.chip[data-alt]').forEach(c => c.classList.remove('active'));
+// Segmented Control Filters listeners
+document.querySelectorAll('[data-alt]').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    document.querySelectorAll('[data-alt]').forEach(c => c.classList.remove('active'));
     e.target.classList.add('active');
     activeAltFilter = e.target.getAttribute('data-alt');
     renderPlanes();
   });
 });
 
-document.querySelectorAll('.chip[data-type]').forEach(chip => {
-  chip.addEventListener('click', (e) => {
-    document.querySelectorAll('.chip[data-type]').forEach(c => c.classList.remove('active'));
+document.querySelectorAll('[data-type]').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    document.querySelectorAll('[data-type]').forEach(c => c.classList.remove('active'));
     e.target.classList.add('active');
     activeTypeFilter = e.target.getAttribute('data-type');
     renderPlanes();
@@ -2028,15 +1954,19 @@ async function updateFocusedPlaneUI(plane) {
 
     uiClosestPlane.innerHTML = `
       <div class="closest-plane-details">
-        <div class="badge">${plane.callsign}</div>
+        <!-- Hero Header: Callsign & Flight Phase -->
+        <div class="flight-hero-header">
+          <div class="flight-callsign-badge">${plane.callsign}</div>
+          <span class="flight-phase-badge ${currentRoute.phase.cssClass}">${currentRoute.phase.label}</span>
+        </div>
 
-        <!-- Aircraft Photo Card (Planespotters.net & Modèle) -->
+        <!-- Aircraft Photo Card (Planespotters.net / Apple Style) -->
         <div class="plane-photo-card" id="plane-photo-card">
           <div class="photo-loading-placeholder ${hasPhoto ? 'hidden' : ''}" id="photo-loading" style="${hasPhoto ? 'display:none;' : ''}">
             <span class="photo-pulse-icon">📷</span>
-            <span>CHARGEMENT DE LA PHOTO DE L'APPAREIL...</span>
+            <span>Chargement de la photo...</span>
           </div>
-          <a id="photo-link" href="${cachedPhoto?.link || '#'}" target="_blank" rel="noopener noreferrer" class="photo-link ${hasPhoto ? '' : 'hidden'}" style="${hasPhoto ? 'display:block;' : ''}" title="Cliquer pour voir la fiche officielle en haute définition">
+          <a id="photo-link" href="${cachedPhoto?.link || '#'}" target="_blank" rel="noopener noreferrer" class="photo-link ${hasPhoto ? '' : 'hidden'}" style="${hasPhoto ? 'display:block;' : ''}" title="Voir la photo HD sur Planespotters.net">
             <img id="photo-img" class="photo-img" src="${cachedPhoto?.src || ''}" alt="Photo de l'appareil ${plane.callsign}" />
             <div class="photo-overlay">
               <span class="${photoBadgeClass}" id="photo-badge">${photoBadgeText}</span>
@@ -2045,19 +1975,11 @@ async function updateFocusedPlaneUI(plane) {
           </a>
         </div>
 
-        <!-- Hero Route Card: Provenance & Destination Mises en Avant -->
+        <!-- Hero Route Card: Google Flights / Apple Maps Style -->
         <div class="route-hero-card" id="route-hero-card">
-          <div class="route-hero-header">
-            <span class="route-section-title">ITINÉRAIRE DU VOL</span>
-            <div class="route-tags">
-              <span class="flight-phase ${currentRoute.phase.cssClass}">${currentRoute.phase.label}</span>
-              ${currentRoute.isReal ? '<span class="real-route-badge" title="Ligne officielle confirmée">RÉEL</span>' : '<span class="est-route-badge" title="Ligne estimée selon position & cap">ESTIMÉ</span>'}
-            </div>
-          </div>
-
           <div class="route-airports-row">
             <div class="route-col origin-col">
-              <span class="route-label">PROVENANCE</span>
+              <span class="route-label">DÉPART</span>
               <span class="route-iata">${currentRoute.origin.code}</span>
               <span class="route-city-name">${currentRoute.origin.city}</span>
               <span class="route-airport-full" title="${currentRoute.origin.name}">${currentRoute.origin.name}</span>
@@ -2075,7 +1997,7 @@ async function updateFocusedPlaneUI(plane) {
             </div>
 
             <div class="route-col dest-col">
-              <span class="route-label">DESTINATION</span>
+              <span class="route-label">ARRIVÉE</span>
               <span class="route-iata">${currentRoute.destination.code}</span>
               <span class="route-city-name">${currentRoute.destination.city}</span>
               <span class="route-airport-full" title="${currentRoute.destination.name}">${currentRoute.destination.name}</span>
@@ -2083,29 +2005,37 @@ async function updateFocusedPlaneUI(plane) {
           </div>
         </div>
 
-        <div class="detail-row">
-          <span>MODÈLE D'APPAREIL</span>
-          <span id="closest-model" class="model-highlight">Recherche...</span>
-        </div>
-        <div class="detail-row">
-          <span>COMPAGNIE / PAYS</span>
-          <span id="closest-operator" class="operator-badge">${plane.country}</span>
-        </div>
-        <div class="detail-row">
-          <span>ALTITUDE</span>
-          <span id="closest-alt" class="telemetry-value">${formatAlt(plane.alt)}</span>
-        </div>
-        <div class="detail-row">
-          <span>VITESSE SOL</span>
-          <span id="closest-speed" class="telemetry-value">${formatSpeed(plane.velocity)}</span>
-        </div>
-        <div class="detail-row">
-          <span>CAP MAGNÉTIQUE</span>
-          <span id="closest-track" class="telemetry-value">${Math.round(plane.true_track || 0)}°</span>
-        </div>
-        <div class="detail-row">
-          <span>DISTANCE DU CENTRE</span>
-          <span id="closest-dist" class="highlight">${plane.dist.toFixed(1)} km</span>
+        <!-- 2x2 Apple Health / Weather Telemetry Grid -->
+        <div class="telemetry-grid">
+          <div class="metric-tile">
+            <span class="metric-label">Altitude</span>
+            <span id="closest-alt" class="metric-value">${formatAlt(plane.alt)}</span>
+            <span class="metric-sub">${plane.vertical_rate ? (plane.vertical_rate > 0 ? '▲ Montée' : '▼ Descente') : 'En palier'}</span>
+          </div>
+
+          <div class="metric-tile">
+            <span class="metric-label">Vitesse Sol</span>
+            <span id="closest-speed" class="metric-value">${formatSpeed(plane.velocity)}</span>
+            <span class="metric-sub">${Math.round((plane.velocity || 0) * 1.94384)} kts</span>
+          </div>
+
+          <div class="metric-tile">
+            <span class="metric-label">Cap</span>
+            <span id="closest-track" class="metric-value">${Math.round(plane.true_track || 0)}°</span>
+            <span class="metric-sub">Orientation</span>
+          </div>
+
+          <div class="metric-tile">
+            <span class="metric-label">Distance Hub</span>
+            <span id="closest-dist" class="metric-value">${plane.dist.toFixed(1)} km</span>
+            <span class="metric-sub">Position radiale</span>
+          </div>
+
+          <div class="metric-tile full-width">
+            <span class="metric-label">Appareil & Opérateur</span>
+            <span id="closest-model" class="metric-value" style="font-size: 0.95rem;">Recherche...</span>
+            <span id="closest-operator" class="metric-sub">${plane.country}</span>
+          </div>
         </div>
       </div>
     `;
@@ -2132,17 +2062,9 @@ async function updateFocusedPlaneUI(plane) {
         if (elHero) {
           elHero.outerHTML = `
             <div class="route-hero-card" id="route-hero-card">
-              <div class="route-hero-header">
-                <span class="route-section-title">ITINÉRAIRE DU VOL</span>
-                <div class="route-tags">
-                  <span class="flight-phase ${updatedRoute.phase.cssClass}">${updatedRoute.phase.label}</span>
-                  <span class="real-route-badge" title="Ligne officielle confirmée">RÉEL</span>
-                </div>
-              </div>
-
               <div class="route-airports-row">
                 <div class="route-col origin-col">
-                  <span class="route-label">PROVENANCE</span>
+                  <span class="route-label">DÉPART</span>
                   <span class="route-iata">${updatedRoute.origin.code}</span>
                   <span class="route-city-name">${updatedRoute.origin.city}</span>
                   <span class="route-airport-full" title="${updatedRoute.origin.name}">${updatedRoute.origin.name}</span>
@@ -2160,7 +2082,7 @@ async function updateFocusedPlaneUI(plane) {
                 </div>
 
                 <div class="route-col dest-col">
-                  <span class="route-label">DESTINATION</span>
+                  <span class="route-label">ARRIVÉE</span>
                   <span class="route-iata">${updatedRoute.destination.code}</span>
                   <span class="route-city-name">${updatedRoute.destination.city}</span>
                   <span class="route-airport-full" title="${updatedRoute.destination.name}">${updatedRoute.destination.name}</span>

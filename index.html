@@ -5,235 +5,253 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="referrer" content="no-referrer" />
-  <title>Paris Flight Radar Avionics HUD</title>
+  <title>SkyPulse • Suivi des Vols en Direct</title>
   <link rel="stylesheet" href="/style.css">
-  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
 </head>
 
 <body>
   <div id="app">
+    <!-- Map Container -->
     <div id="map"></div>
 
-    <!-- HUD Overlay -->
-    <div id="hud-overlay">
-      <!-- Main HUD Header -->
-      <div class="hud-header">
-        <div>
-          <h1>RADAR AÉRIEN • PARIS</h1>
-          <div class="hud-subtitle">SURVEILLANCE SECTORIELLE EN TEMPS RÉEL</div>
-        </div>
-
-        <!-- Search Bar -->
-        <div class="search-container">
-          <input type="text" id="flight-search" placeholder="🔍 Rechercher vol, modèle, callsign..." autocomplete="off">
-          <div id="search-results" class="search-dropdown hidden"></div>
-        </div>
-
-        <div class="header-right">
-          <div class="map-selector-container">
-            <label for="location-select">SECTEUR</label>
-            <select id="location-select">
-              <optgroup label="Vaste Échelle & Navigation Libre">
-                <option value="viewport">🌐 VUE LIBRE (Écran actif)</option>
-                <option value="europe">🇪🇺 EUROPE ENTIÈRE (~3 500 vols)</option>
-                <option value="france">🇫🇷 FRANCE ENTIÈRE (~1 200 vols)</option>
-              </optgroup>
-              <optgroup label="Île-de-France">
-                <option value="paris_center" selected>🗼 Paris (Centre)</option>
-                <option value="cdg">🛫 Paris-Charles de Gaulle (CDG)</option>
-                <option value="ory">🛬 Paris-Orly (ORY)</option>
-              </optgroup>
-              <optgroup label="Grandes Villes & Hubs">
-                <option value="nce">🌴 Nice Côte d'Azur (NCE)</option>
-                <option value="lys">🦁 Lyon Saint-Exupéry (LYS)</option>
-                <option value="mrs">⚓ Marseille Provence (MRS)</option>
-                <option value="tls">✈️ Toulouse-Blagnac (Airbus)</option>
-              </optgroup>
-              <optgroup label="International">
-                <option value="lhr">🇬🇧 Londres Heathrow (LHR)</option>
-                <option value="jfk">🇺🇸 New York JFK</option>
-                <option value="dxb">🇦🇪 Dubaï International (DXB)</option>
-                <option value="hnd">🇯🇵 Tokyo Haneda (HND)</option>
-                <option value="icn">🇰🇷 Séoul Incheon (ICN)</option>
-              </optgroup>
-            </select>
-          </div>
-
-          <div class="map-selector-container">
-            <label for="basemap-select">VISION</label>
-            <select id="basemap-select">
-              <option value="satellite" selected>🛰️ SATELLITE HD (Esri)</option>
-              <option value="midnight_gold">⚜️ NOIR & OR (Midnight Gold)</option>
-              <option value="nasa">🌌 NOCTURNE HD (NASA Night Lights)</option>
-              <option value="crt_vintage">🟢 RADAR CRT VINTAGE (Phosphore Vert)</option>
-              <option value="brutalist">🏁 BRUTALISTE N&B (Contraste Élevé)</option>
-              <option value="dark">📡 RADAR SOMBRE (Esri Dark)</option>
-              <option value="flir">🟠 FLIR THERMIQUE AMBRE</option>
-              <option value="osm">🗺️ OPENSTREETMAP (Détaillé)</option>
-              <option value="topo">⛰️ TOPOGRAPHIE (Relief)</option>
-            </select>
-          </div>
-
-          <div class="status-indicator">
-            <span class="blinking-dot"></span> LIVE
-          </div>
+    <!-- Apple-style Floating Navigation Island -->
+    <header class="nav-island">
+      <div class="nav-brand">
+        <span class="brand-icon">✈️</span>
+        <div class="brand-text">
+          <span class="brand-name">SkyPulse</span>
+          <span class="brand-tag">TEMPS RÉEL</span>
         </div>
       </div>
 
-      <!-- Tactical Control Bar: Filters, Weather, ATC, METAR -->
-      <div id="tactical-bar">
-        <!-- Weather Radar Toggle -->
-        <button id="btn-weather" class="tactical-btn" title="Activer le radar de pluie RainViewer en temps réel">
-          🌧️ PLUIE TEMPS RÉEL <span class="btn-state">OFF</span>
-        </button>
+      <!-- Search capsule -->
+      <div class="search-capsule">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="flight-search" placeholder="Rechercher vol, appareil, compagnie..." autocomplete="off">
+        <div id="search-results" class="search-dropdown hidden"></div>
+      </div>
 
-        <!-- Live ATC Audio Module & Panel Trigger -->
-        <div class="atc-widget-container">
-          <button id="btn-atc" class="tactical-btn atc-btn" title="Activer / Couper la radio ATC">
-            <span class="atc-icon">📻</span>
-            <span id="atc-button-text">LIVE ATC</span>
-            <span class="btn-state">OFF</span>
-          </button>
-          <button id="btn-atc-panel-toggle" class="tactical-btn atc-trigger-btn" title="Ouvrir le panneau récepteur radio pour voir et changer la station">
-            🎛️ POSTE RADIO
-          </button>
+      <!-- Controls & Selectors -->
+      <div class="nav-actions">
+        <!-- Sector Selector -->
+        <div class="select-pill">
+          <span class="pill-icon">📍</span>
+          <select id="location-select" title="Changer de secteur géographique">
+            <optgroup label="Navigation Libre & Grandes Échelles">
+              <option value="viewport">Vue libre (Écran)</option>
+              <option value="europe">Europe (~3 500 vols)</option>
+              <option value="france">France entière</option>
+            </optgroup>
+            <optgroup label="Île-de-France & Hubs">
+              <option value="paris_center" selected>Paris Centre</option>
+              <option value="cdg">Paris CDG (LFPG)</option>
+              <option value="ory">Paris Orly (LFPO)</option>
+            </optgroup>
+            <optgroup label="France & Régions">
+              <option value="nce">Nice Côte d'Azur</option>
+              <option value="lys">Lyon Saint-Exupéry</option>
+              <option value="mrs">Marseille Provence</option>
+              <option value="tls">Toulouse-Blagnac</option>
+            </optgroup>
+            <optgroup label="Hubs Internationaux">
+              <option value="lhr">Londres Heathrow</option>
+              <option value="jfk">New York JFK</option>
+              <option value="dxb">Dubaï Intl</option>
+              <option value="hnd">Tokyo Haneda</option>
+              <option value="icn">Séoul Incheon</option>
+            </optgroup>
+          </select>
         </div>
 
-        <!-- Emergency Squawk 7700 Watcher -->
-        <button id="btn-emergency" class="tactical-btn emergency-btn"
-          title="Surveillance des transpondeurs d'urgence 7700">
-          ⚠️ SQUAWK 7700 <span class="btn-state">NORMAL</span>
-        </button>
-
-        <!-- Altitude Filter Chips -->
-        <div class="filter-group">
-          <span class="filter-label">ALTITUDE:</span>
-          <button class="chip active" data-alt="all">TOUTES</button>
-          <button class="chip" data-alt="approach">APPROCHE (&lt;3k m)</button>
-          <button class="chip" data-alt="cruise">CROISIÈRE (&gt;8k m)</button>
+        <!-- Vision/Basemap Selector -->
+        <div class="select-pill">
+          <span class="pill-icon">🗺️</span>
+          <select id="basemap-select" title="Changer le style de carte">
+            <option value="satellite" selected>Satellite HD (Esri)</option>
+            <option value="midnight_gold">Noir & Or</option>
+            <option value="dark">Sombre Minimal</option>
+            <option value="nasa">Nocturne NASA</option>
+            <option value="crt_vintage">Radar Vert</option>
+            <option value="brutalist">Contraste Élevé</option>
+            <option value="flir">Thermique Ambre</option>
+            <option value="osm">OpenStreetMap</option>
+            <option value="topo">Topographie</option>
+          </select>
         </div>
 
-        <!-- Type Filter Chips -->
-        <div class="filter-group">
-          <span class="filter-label">TYPE:</span>
-          <button class="chip active" data-type="all">TOUS</button>
-          <button class="chip" data-type="airline">LIGNES</button>
-          <button class="chip" data-type="private">JETS / PRIVÉS</button>
-        </div>
-
-        <!-- Live METAR & Wind Info -->
-        <div id="metar-widget" class="metar-card" title="Rapport METAR officiel en direct">
-          <span id="metar-wind-icon">🌬️</span>
-          <span id="metar-text">CHARGEMENT METAR...</span>
+        <!-- Live badge -->
+        <div class="live-status-pill">
+          <span class="live-dot"></span>
+          <span>DIRECT</span>
         </div>
       </div>
-      
-      <!-- ATC Live Radio HUD Receiver Panel -->
-      <div id="atc-radio-panel" class="atc-panel hidden">
-        <div class="atc-panel-header">
-          <div class="atc-panel-title">
-            <span class="radio-led" id="panel-radio-led"></span>
-            <span>RÉCEPTEUR RADIO ATC (VHF AM)</span>
-          </div>
-          <button id="btn-close-atc-panel" class="panel-close-btn" title="Fermer le panneau">✕</button>
-        </div>
+    </header>
 
-        <!-- Avionics COMM Screen (Garmin / Collins avionics style) -->
-        <div class="avionics-comm-screen">
-          <div class="comm-top-row">
-            <span class="comm-channel-id">COMM 1 ACTIVE</span>
-            <span class="comm-status-badge" id="panel-comm-status">OFFLINE</span>
+    <!-- Floating Segmented Controls Toolbar -->
+    <div class="toolbar-island">
+      <!-- Altitude Segmented Control -->
+      <div class="segmented-control" role="group" aria-label="Filtre d'altitude">
+        <button class="segment-btn active" data-alt="all">Toutes altitudes</button>
+        <button class="segment-btn" data-alt="approach">Approche (&lt;3k m)</button>
+        <button class="segment-btn" data-alt="cruise">Croisière (&gt;8k m)</button>
+      </div>
+
+      <!-- Flight Type Segmented Control -->
+      <div class="segmented-control" role="group" aria-label="Filtre de type">
+        <button class="segment-btn active" data-type="all">Tous types</button>
+        <button class="segment-btn" data-type="airline">Lignes commerciales</button>
+        <button class="segment-btn" data-type="private">Jets d'affaires</button>
+      </div>
+
+      <div class="toolbar-divider"></div>
+
+      <!-- Weather Radar Toggle Button -->
+      <button id="btn-weather" class="action-pill" title="Afficher la météo radar en temps réel">
+        <span class="pill-icon">🌧️</span>
+        <span>Pluie radar</span>
+        <span class="btn-state pill-badge">OFF</span>
+      </button>
+
+      <!-- Live ATC Audio Module -->
+      <div class="atc-pill-group">
+        <button id="btn-atc" class="action-pill atc-pill" title="Activer / Couper la radio ATC">
+          <span class="atc-icon">📻</span>
+          <span id="atc-button-text">Tour ATC</span>
+          <span class="btn-state pill-badge">OFF</span>
+        </button>
+        <button id="btn-atc-panel-toggle" class="action-pill atc-settings-btn" title="Changer de station radio">
+          <span>Fréquences</span>
+        </button>
+      </div>
+
+      <!-- Emergency Squawk 7700 Indicator -->
+      <button id="btn-emergency" class="action-pill emergency-pill" title="Surveillance des transpondeurs d'urgence 7700">
+        <span class="pill-icon">⚠️</span>
+        <span>Urgences</span>
+        <span class="btn-state pill-badge">0</span>
+      </button>
+
+      <!-- Live METAR Weather Widget -->
+      <div id="metar-widget" class="metar-pill" title="METAR officiel de la plateforme">
+        <span id="metar-wind-icon">🌬️</span>
+        <span id="metar-text">Météo plateforme...</span>
+      </div>
+    </div>
+
+    <!-- ATC Audio Modal / Player Sheet -->
+    <div id="atc-radio-panel" class="atc-sheet hidden">
+      <div class="sheet-header">
+        <div class="sheet-title-group">
+          <span class="radio-led" id="panel-radio-led"></span>
+          <div>
+            <div class="sheet-title">Radio Tour ATC en Direct</div>
+            <div class="sheet-subtitle">Diffusion audio VHF aéronautique temps réel</div>
           </div>
-          <div class="comm-frequency-display">
+        </div>
+        <button id="btn-close-atc-panel" class="sheet-close-btn" title="Fermer le lecteur">✕</button>
+      </div>
+
+      <!-- Station Player Card -->
+      <div class="player-card">
+        <div class="player-station-info">
+          <span class="comm-status-pill" id="panel-comm-status">EN ATTENTE</span>
+          <div class="player-frequency">
             <span id="panel-freq-mhz">119.100</span>
-            <span class="freq-unit">MHz VHF</span>
+            <span class="freq-unit">MHz</span>
           </div>
-          <div class="comm-station-name" id="panel-station-name">KJFK TWR • NEW YORK JFK</div>
-          <div class="comm-station-desc" id="panel-station-desc">Tour de contrôle principale (pistes & atterrissages/décollages)</div>
-
-          <!-- Live Audio Wave Equalizer Animation -->
-          <div class="comm-wave-bars" id="panel-wave-bars">
-            <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
-            <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
-          </div>
+          <div class="player-station-title" id="panel-station-name">KJFK Tour • New York</div>
+          <div class="player-station-desc" id="panel-station-desc">Tour de contrôle principale (pistes & atterrissages/décollages)</div>
         </div>
 
-        <!-- Panel Audio Controls -->
-        <div class="atc-panel-controls">
-          <button id="panel-btn-toggle" class="panel-play-btn" title="Activer / Couper la diffusion">
+        <!-- Equalizer Bars -->
+        <div class="comm-wave-bars" id="panel-wave-bars">
+          <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+        </div>
+
+        <!-- Player Controls -->
+        <div class="player-controls-row">
+          <button id="panel-btn-toggle" class="player-play-btn">
             <span id="panel-play-icon">▶</span>
-            <span id="panel-play-label">ÉCOUTER</span>
+            <span id="panel-play-label">Écouter</span>
           </button>
-          <div class="panel-vol-group" title="Volume">
-            <span class="vol-icon">🔊</span>
+
+          <div class="player-vol-slider">
+            <span class="vol-icon">🔉</span>
             <input type="range" id="panel-volume" min="0" max="100" value="80">
-            <span id="panel-vol-label">80%</span>
+            <span id="panel-vol-label" class="vol-label">80%</span>
           </div>
-        </div>
-
-        <!-- Station Directory -->
-        <div class="atc-directory-container">
-          <div class="directory-header">
-            <span>STATIONS ATC VÉRIFIÉES EN SERVICE</span>
-            <span class="directory-count" id="stations-count">21 fréquences</span>
-          </div>
-          <div class="stations-list" id="stations-list">
-            <!-- Dynamically populated from ATC_CHANNELS -->
-          </div>
-        </div>
-
-        <!-- Legal notice -->
-        <div class="atc-legal-notice">
-          ℹ️ En France, la rediffusion publique des radios ATC est interdite par la loi. Pour la France, les hubs actifs relayés sont Amsterdam, Zurich, Dublin ou les hubs américains.
         </div>
       </div>
 
-      <!-- Main Sidebar HUD (Flight details, Profile) -->
-      <div id="sidebar">
-        <!-- Targeted Plane Panel (Pliable vers le haut) -->
-        <div class="panel" id="targeted-plane-panel">
-          <div class="panel-header-row" id="targeted-panel-header" title="Cliquer pour plier / déplier le panneau">
-            <div class="panel-header-left">
-              <h2 id="sidebar-title">APPAREIL CIBLÉ</h2>
-              <span id="header-callsign-preview" class="header-callsign-preview"></span>
-            </div>
-            <div class="panel-header-actions">
-              <button id="btn-reset-selection" class="reset-btn"
-                title="Désélectionner et revenir au plus proche">RÉINITIALISER</button>
-              <button id="btn-toggle-collapse" class="collapse-toggle-btn"
-                title="Plier / Dérouler le panneau vers le haut">
-                <span id="collapse-chevron">▲</span>
-                <span id="collapse-text">PLIER</span>
-              </button>
-            </div>
+      <!-- Station Directory List -->
+      <div class="stations-section">
+        <div class="stations-section-header">
+          <span>Stations disponibles</span>
+          <span class="directory-count" id="stations-count">21 fréquences</span>
+        </div>
+        <div class="stations-list" id="stations-list"></div>
+      </div>
+
+      <div class="sheet-notice">
+        ℹ️ En France, la rediffusion publique directe des fréquences ATC est restreinte par la législation. Pour l'Europe, les hubs ouverts relayés incluent Amsterdam, Zurich et Dublin.
+      </div>
+    </div>
+
+    <!-- Floating Flight Sidebar Card (Apple / Google Flights style) -->
+    <div id="sidebar">
+      <!-- Targeted Plane Panel -->
+      <div class="apple-card" id="targeted-plane-panel">
+        <div class="card-header" id="targeted-panel-header" title="Cliquer pour réduire ou agrandir">
+          <div class="card-header-left">
+            <h2 id="sidebar-title">Vol Suivi</h2>
+            <span id="header-callsign-preview" class="header-callsign-preview"></span>
           </div>
-
-          <!-- Corps du panneau pliable vers le haut -->
-          <div class="panel-collapsible-body" id="panel-collapsible-body">
-            <!-- Vertical Climb/Descent Profile Canvas -->
-            <div class="profile-container">
-              <div class="profile-title">PROFIL VERTICAL D'APPROCHE</div>
-              <canvas id="profile-canvas" width="340" height="55"></canvas>
-            </div>
-
-            <!-- Plane telemetry & details -->
-            <div id="closest-plane-info" class="empty">Recherche en cours...</div>
+          <div class="card-header-actions">
+            <button id="btn-reset-selection" class="reset-action-btn" title="Revenir au vol le plus proche">
+              Réinitialiser
+            </button>
+            <button id="btn-toggle-collapse" class="collapse-action-btn" title="Réduire / Agrandir la fiche">
+              <span id="collapse-chevron">▲</span>
+              <span id="collapse-text">Réduire</span>
+            </button>
           </div>
         </div>
 
-        <!-- Scan & Sector Stats -->
-        <div class="panel stats">
-          <div class="stat-row">
-            <span>TRAFIC DÉTECTÉ</span>
-            <span id="total-planes" class="highlight">0</span>
+        <!-- Collapsible Content -->
+        <div class="panel-collapsible-body" id="panel-collapsible-body">
+          <!-- Elevation / Approach Profile Canvas -->
+          <div class="profile-card">
+            <div class="profile-header">Profil de Descente & Altitude</div>
+            <canvas id="profile-canvas" width="340" height="50"></canvas>
           </div>
-          <div class="stat-row">
-            <span>PROCHAIN BALAYAGE</span>
-            <span id="countdown" class="highlight">10s</span>
+
+          <!-- Plane Details & Route (Rendered dynamically) -->
+          <div id="closest-plane-info" class="empty-state">
+            <div class="empty-spinner"></div>
+            <span>Sélectionnez un avion sur la carte...</span>
           </div>
+        </div>
+      </div>
+
+      <!-- Sector Stats Capsule (Floating Bottom) -->
+      <div class="stats-capsule">
+        <div class="stat-item">
+          <span class="stat-label">Trafic détecté</span>
+          <span id="total-planes" class="stat-value">0</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <span class="stat-label">Actualisation</span>
+          <span id="countdown" class="stat-value">10s</span>
         </div>
       </div>
     </div>
+  </div>
+
   <!-- Dedicated Live ATC Audio Player (No Referer Policy) -->
   <audio id="atc-audio-player" preload="none" referrerpolicy="no-referrer"></audio>
 
