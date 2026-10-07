@@ -7,15 +7,16 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  try {
-    const { path, ...queryParams } = req.query || {};
-    const subpath = Array.isArray(path) ? path.join('/') : (path || '');
-    const qs = new URLSearchParams(queryParams).toString();
-    const targetUrl = `https://api.planespotters.net/pub/photos/${subpath}${qs ? `?${qs}` : ''}`;
+  const hex = (req.query.hex || '').trim().toLowerCase();
+  if (!hex) {
+    return res.status(400).json({ photos: [], error: 'Missing hex parameter' });
+  }
 
+  try {
+    const targetUrl = `https://api.planespotters.net/pub/photos/hex/${hex}`;
     const response = await fetch(targetUrl, {
       headers: {
-        'User-Agent': 'FlightRadarAvionics/1.0 (https://flightcontroller.vercel.app; contact@flightcontroller.app)',
+        'User-Agent': 'FlightRadarAvionics/1.0 (+https://flightcontroller.vercel.app; contact@flightcontroller.app)',
         'Accept': 'application/json'
       }
     });
@@ -25,7 +26,6 @@ export default async function handler(req, res) {
     }
 
     const data = await response.json();
-    // Cache for 24 hours on Vercel CDN Edge
     res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate=604800');
     return res.status(200).json(data);
   } catch (error) {

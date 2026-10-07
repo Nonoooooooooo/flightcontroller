@@ -3,10 +3,14 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   server: {
     proxy: {
-      '/planespotters': {
+      '/api/planespotters': {
         target: 'https://api.planespotters.net',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/planespotters/, '/pub/photos'),
+        rewrite: (path) => {
+          const url = new URL('http://localhost' + path);
+          const hex = url.searchParams.get('hex') || '';
+          return `/pub/photos/hex/${hex}`;
+        },
         headers: {
           'User-Agent': 'FlightRadarAvionics/1.0 (https://flightcontroller.vercel.app; contact@flightcontroller.app)'
         }

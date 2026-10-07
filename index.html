@@ -191,22 +191,35 @@
 
       <!-- Main Sidebar HUD (Flight details, Profile) -->
       <div id="sidebar">
-        <!-- Targeted Plane Panel -->
-        <div class="panel">
-          <div class="panel-header-row">
-            <h2 id="sidebar-title">APPAREIL CIBLÉ</h2>
-            <button id="btn-reset-selection" class="reset-btn"
-              title="Désélectionner et revenir au plus proche">RÉINITIALISER</button>
+        <!-- Targeted Plane Panel (Pliable vers le haut) -->
+        <div class="panel" id="targeted-plane-panel">
+          <div class="panel-header-row" id="targeted-panel-header" title="Cliquer pour plier / déplier le panneau">
+            <div class="panel-header-left">
+              <h2 id="sidebar-title">APPAREIL CIBLÉ</h2>
+              <span id="header-callsign-preview" class="header-callsign-preview"></span>
+            </div>
+            <div class="panel-header-actions">
+              <button id="btn-reset-selection" class="reset-btn"
+                title="Désélectionner et revenir au plus proche">RÉINITIALISER</button>
+              <button id="btn-toggle-collapse" class="collapse-toggle-btn"
+                title="Plier / Dérouler le panneau vers le haut">
+                <span id="collapse-chevron">▲</span>
+                <span id="collapse-text">PLIER</span>
+              </button>
+            </div>
           </div>
 
-          <!-- Vertical Climb/Descent Profile Canvas -->
-          <div class="profile-container">
-            <div class="profile-title">PROFIL VERTICAL D'APPROCHE</div>
-            <canvas id="profile-canvas" width="340" height="55"></canvas>
-          </div>
+          <!-- Corps du panneau pliable vers le haut -->
+          <div class="panel-collapsible-body" id="panel-collapsible-body">
+            <!-- Vertical Climb/Descent Profile Canvas -->
+            <div class="profile-container">
+              <div class="profile-title">PROFIL VERTICAL D'APPROCHE</div>
+              <canvas id="profile-canvas" width="340" height="55"></canvas>
+            </div>
 
-          <!-- Plane telemetry & details -->
-          <div id="closest-plane-info" class="empty">Recherche en cours...</div>
+            <!-- Plane telemetry & details -->
+            <div id="closest-plane-info" class="empty">Recherche en cours...</div>
+          </div>
         </div>
 
         <!-- Scan & Sector Stats -->

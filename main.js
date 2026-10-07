@@ -863,8 +863,24 @@ async function fetchAircraftPhoto(icao24, model = '') {
   if (photoCache.has(key)) return photoCache.get(key);
 
   try {
-    const res = await fetch(`/planespotters/hex/${key}`);
-    if (res.ok) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+    let res = null;
+    try {
+      // 1. Direct browser fetch to Planespotters API (CORS enabled for browsers)
+      res = await fetch(`https://api.planespotters.net/pub/photos/hex/${key}`, {
+        signal: controller.signal
+      });
+    } catch (eDirect) {
+      // 2. Direct fetch blocked by adblocker / network, try our serverless API proxy
+      try {
+        res = await fetch(`/api/planespotters?hex=${key}`, { signal: controller.signal });
+      } catch (eProxy) {}
+    }
+    clearTimeout(timeoutId);
+
+    if (res && res.ok) {
       const data = await res.json();
       if (data && data.photos && data.photos.length > 0) {
         const p = data.photos[0];
@@ -885,6 +901,51 @@ async function fetchAircraftPhoto(icao24, model = '') {
   const fallback = { ...getFallbackPhoto(model), isReal: false, link: `https://www.planespotters.net/hex/${key}` };
   photoCache.set(key, fallback);
   return fallback;
+}
+
+function applyPhotoToUI(photoData, plane) {
+  if (!photoData || !plane) return;
+  const photoImg = document.getElementById('photo-img');
+  const photoLink = document.getElementById('photo-link');
+  const photoLoading = document.getElementById('photo-loading');
+  const photoBadge = document.getElementById('photo-badge');
+  const photoCredit = document.getElementById('photo-credit');
+
+  if (!photoImg || !photoLoading || !photoLink) return;
+
+  const showLoaded = () => {
+    photoLoading.classList.add('hidden');
+    photoLoading.style.display = 'none';
+    photoLink.classList.remove('hidden');
+    photoLink.style.display = 'block';
+  };
+
+  photoImg.onload = showLoaded;
+  photoImg.onerror = () => {
+    const fallback = getFallbackPhoto('');
+    photoImg.src = fallback.src;
+    if (photoBadge) {
+      photoBadge.textContent = '📷 ILLUSTRATION';
+      photoBadge.classList.add('illustration');
+    }
+    if (photoCredit) photoCredit.textContent = fallback.credit;
+    showLoaded();
+  };
+
+  if (photoLink) photoLink.href = photoData.link || `https://www.planespotters.net/hex/${plane.icao24}`;
+  if (photoBadge) {
+    photoBadge.textContent = photoData.isReal ? '📷 PHOTO RÉELLE' : '📷 ILLUSTRATION';
+    photoBadge.classList.toggle('illustration', !photoData.isReal);
+  }
+  if (photoCredit) {
+    photoCredit.textContent = photoData.photographer ? `© ${photoData.photographer}` : (photoData.credit || 'Photo d\'illustration');
+  }
+
+  photoImg.src = photoData.src;
+
+  if (photoImg.complete && photoImg.naturalWidth > 0) {
+    showLoaded();
+  }
 }
 
 // Primary Flight Display (PFD) removed for sober avionics layout
@@ -1871,40 +1932,72 @@ function renderPlanes() {
     drawPFD(focusedPlane);
     drawProfile(focusedPlane);
   } else {
+    currentFocusedIcao = null;
     routeLayer.clearLayers();
     drawPFD(null);
     drawProfile(null);
     const uiClosestPlane = document.getElementById('closest-plane-info');
     if (uiClosestPlane) uiClosestPlane.innerHTML = `<div class="empty">Aucun appareil ne correspond aux filtres actifs</div>`;
+    const headerCallsignPreview = document.getElementById('header-callsign-preview');
+    if (headerCallsignPreview) headerCallsignPreview.textContent = '';
   }
 }
+
+let currentFocusedIcao = null;
 
 async function updateFocusedPlaneUI(plane) {
   const uiClosestPlane = document.getElementById('closest-plane-info');
   if (!uiClosestPlane) return;
 
+  const headerCallsignPreview = document.getElementById('header-callsign-preview');
+  if (headerCallsignPreview) {
+    headerCallsignPreview.textContent = plane.callsign || (plane.icao24 ? plane.icao24.toUpperCase() : '');
+  }
+
+  // If same plane already rendered, smoothly update live telemetry without rebuilding DOM or flickering
+  if (currentFocusedIcao === plane.icao24) {
+    const elAlt = document.getElementById('closest-alt');
+    const elSpeed = document.getElementById('closest-speed');
+    const elTrack = document.getElementById('closest-track');
+    const elDist = document.getElementById('closest-dist');
+    if (elAlt) elAlt.textContent = formatAlt(plane.alt);
+    if (elSpeed) elSpeed.textContent = formatSpeed(plane.velocity);
+    if (elTrack) elTrack.textContent = `${Math.round(plane.true_track || 0)}°`;
+    if (elDist) elDist.textContent = `${plane.dist.toFixed(1)} km`;
+    return;
+  }
+
+  currentFocusedIcao = plane.icao24;
+  const key = (plane.icao24 || '').toLowerCase().trim();
+  const cachedPhoto = photoCache.get(key);
+
   function renderCard(currentRoute) {
+    const hasPhoto = Boolean(cachedPhoto);
+    const photoBadgeText = cachedPhoto ? (cachedPhoto.isReal ? '📷 PHOTO RÉELLE' : '📷 ILLUSTRATION') : '📷 PHOTO RÉELLE';
+    const photoBadgeClass = cachedPhoto && !cachedPhoto.isReal ? 'photo-tag-badge illustration' : 'photo-tag-badge';
+    const photoCreditText = cachedPhoto ? (cachedPhoto.photographer ? `© ${cachedPhoto.photographer}` : (cachedPhoto.credit || 'Planespotters.net')) : '© Planespotters.net';
+
     uiClosestPlane.innerHTML = `
       <div class="closest-plane-details">
         <div class="badge">${plane.callsign}</div>
 
         <!-- Aircraft Photo Card (Planespotters.net & Modèle) -->
         <div class="plane-photo-card" id="plane-photo-card">
-          <div class="photo-loading-placeholder" id="photo-loading">
+          <div class="photo-loading-placeholder ${hasPhoto ? 'hidden' : ''}" id="photo-loading" style="${hasPhoto ? 'display:none;' : ''}">
             <span class="photo-pulse-icon">📷</span>
             <span>CHARGEMENT DE LA PHOTO DE L'APPAREIL...</span>
           </div>
-          <a id="photo-link" href="#" target="_blank" rel="noopener noreferrer" class="photo-link hidden" title="Cliquer pour voir la fiche officielle en haute définition">
-            <img id="photo-img" class="photo-img" alt="Photo de l'appareil ${plane.callsign}" />
+          <a id="photo-link" href="${cachedPhoto?.link || '#'}" target="_blank" rel="noopener noreferrer" class="photo-link ${hasPhoto ? '' : 'hidden'}" style="${hasPhoto ? 'display:block;' : ''}" title="Cliquer pour voir la fiche officielle en haute définition">
+            <img id="photo-img" class="photo-img" src="${cachedPhoto?.src || ''}" alt="Photo de l'appareil ${plane.callsign}" />
             <div class="photo-overlay">
-              <span class="photo-tag-badge" id="photo-badge">📷 PHOTO RÉELLE</span>
-              <span class="photo-credit-text" id="photo-credit">© Planespotters.net</span>
+              <span class="${photoBadgeClass}" id="photo-badge">${photoBadgeText}</span>
+              <span class="photo-credit-text" id="photo-credit">${photoCreditText}</span>
             </div>
           </a>
         </div>
 
         <!-- Hero Route Card: Provenance & Destination Mises en Avant -->
-        <div class="route-hero-card">
+        <div class="route-hero-card" id="route-hero-card">
           <div class="route-hero-header">
             <span class="route-section-title">ITINÉRAIRE DU VOL</span>
             <div class="route-tags">
@@ -1951,60 +2044,31 @@ async function updateFocusedPlaneUI(plane) {
         </div>
         <div class="detail-row">
           <span>ALTITUDE</span>
-          <span class="telemetry-value">${formatAlt(plane.alt)}</span>
+          <span id="closest-alt" class="telemetry-value">${formatAlt(plane.alt)}</span>
         </div>
         <div class="detail-row">
           <span>VITESSE SOL</span>
-          <span class="telemetry-value">${formatSpeed(plane.velocity)}</span>
+          <span id="closest-speed" class="telemetry-value">${formatSpeed(plane.velocity)}</span>
         </div>
         <div class="detail-row">
           <span>CAP MAGNÉTIQUE</span>
-          <span class="telemetry-value">${Math.round(plane.true_track || 0)}°</span>
+          <span id="closest-track" class="telemetry-value">${Math.round(plane.true_track || 0)}°</span>
         </div>
         <div class="detail-row">
           <span>DISTANCE DU CENTRE</span>
-          <span class="highlight">${plane.dist.toFixed(1)} km</span>
+          <span id="closest-dist" class="highlight">${plane.dist.toFixed(1)} km</span>
         </div>
       </div>
     `;
 
-    // Load photo asynchronously
-    fetchAircraftPhoto(plane.icao24, '').then(photoData => {
-      if (photoData) {
-        const photoImg = document.getElementById('photo-img');
-        const photoLink = document.getElementById('photo-link');
-        const photoLoading = document.getElementById('photo-loading');
-        const photoBadge = document.getElementById('photo-badge');
-        const photoCredit = document.getElementById('photo-credit');
-
-        if (photoImg && photoLoading && photoLink) {
-          photoImg.src = photoData.src;
-          photoImg.onload = () => {
-            photoLoading.classList.add('hidden');
-            photoLink.classList.remove('hidden');
-          };
-          photoImg.onerror = () => {
-            const fallback = getFallbackPhoto('');
-            photoImg.src = fallback.src;
-            if (photoBadge) {
-              photoBadge.textContent = '📷 ILLUSTRATION';
-              photoBadge.classList.add('illustration');
-            }
-            if (photoCredit) photoCredit.textContent = fallback.credit;
-            photoLoading.classList.add('hidden');
-            photoLink.classList.remove('hidden');
-          };
-          if (photoLink) photoLink.href = photoData.link || `https://www.planespotters.net/hex/${plane.icao24}`;
-          if (photoBadge) {
-            photoBadge.textContent = photoData.isReal ? '📷 PHOTO RÉELLE' : '📷 ILLUSTRATION';
-            photoBadge.classList.toggle('illustration', !photoData.isReal);
-          }
-          if (photoCredit) {
-            photoCredit.textContent = photoData.photographer ? `© ${photoData.photographer}` : photoData.credit;
-          }
+    // If not already in cache, load photo asynchronously
+    if (!hasPhoto) {
+      fetchAircraftPhoto(plane.icao24, '').then(photoData => {
+        if (currentFocusedIcao === plane.icao24) {
+          applyPhotoToUI(photoData, plane);
         }
-      }
-    });
+      });
+    }
   }
 
   const initialRoute = getEstimatedRoute(plane);
@@ -2013,9 +2077,49 @@ async function updateFocusedPlaneUI(plane) {
   // If route is estimated, query OpenSky API for real flight route asynchronously
   if (!initialRoute.isReal) {
     fetchAircraftRoute(plane.callsign).then(realRoute => {
-      if (realRoute && (selectedCallsign === plane.callsign || !selectedCallsign)) {
+      if (realRoute && currentFocusedIcao === plane.icao24) {
         const updatedRoute = getEstimatedRoute(plane);
-        renderCard(updatedRoute);
+        const elHero = document.getElementById('route-hero-card');
+        if (elHero) {
+          elHero.outerHTML = `
+            <div class="route-hero-card" id="route-hero-card">
+              <div class="route-hero-header">
+                <span class="route-section-title">ITINÉRAIRE DU VOL</span>
+                <div class="route-tags">
+                  <span class="flight-phase ${updatedRoute.phase.cssClass}">${updatedRoute.phase.label}</span>
+                  <span class="real-route-badge" title="Ligne officielle confirmée">RÉEL</span>
+                </div>
+              </div>
+
+              <div class="route-airports-row">
+                <div class="route-col origin-col">
+                  <span class="route-label">PROVENANCE</span>
+                  <span class="route-iata">${updatedRoute.origin.code}</span>
+                  <span class="route-city-name">${updatedRoute.origin.city}</span>
+                  <span class="route-airport-full" title="${updatedRoute.origin.name}">${updatedRoute.origin.name}</span>
+                </div>
+
+                <div class="route-flight-path">
+                  <div class="route-line-decor">
+                    <span class="decor-dot"></span>
+                    <span class="decor-line"></span>
+                    <span class="decor-plane">✈️</span>
+                    <span class="decor-line"></span>
+                    <span class="decor-dot"></span>
+                  </div>
+                  <span class="route-dist-eta">${Math.round(updatedRoute.remainingDist)} km • ETA ${updatedRoute.etaFormatted}</span>
+                </div>
+
+                <div class="route-col dest-col">
+                  <span class="route-label">DESTINATION</span>
+                  <span class="route-iata">${updatedRoute.destination.code}</span>
+                  <span class="route-city-name">${updatedRoute.destination.city}</span>
+                  <span class="route-airport-full" title="${updatedRoute.destination.name}">${updatedRoute.destination.name}</span>
+                </div>
+              </div>
+            </div>
+          `;
+        }
         drawFlightRoute(plane, updatedRoute);
       }
     });
@@ -2023,15 +2127,56 @@ async function updateFocusedPlaneUI(plane) {
 
   // Asynchronously query HexDB for aircraft model and operator
   fetchAircraftDetails(plane.icao24).then(details => {
-    if (details) {
+    if (details && currentFocusedIcao === plane.icao24) {
       const elModel = document.getElementById('closest-model');
       const elOperator = document.getElementById('closest-operator');
       if (elModel) elModel.textContent = details.model;
       if (elOperator && details.operator) elOperator.textContent = details.operator;
       
-      // Update photo with precise model if fallback was needed
-      fetchAircraftPhoto(plane.icao24, details.model);
+      // If photo is not real, update fallback with precise aircraft model
+      const currentPhoto = photoCache.get(key);
+      if (!currentPhoto || !currentPhoto.isReal) {
+        fetchAircraftPhoto(plane.icao24, details.model).then(photoData => {
+          if (currentFocusedIcao === plane.icao24) {
+            applyPhotoToUI(photoData, plane);
+          }
+        });
+      }
     }
+  });
+}
+
+// Collapsible Targeted Plane Panel logic (pliable vers le haut)
+let isPanelCollapsed = false;
+const targetedPanel = document.getElementById('targeted-plane-panel');
+const btnToggleCollapse = document.getElementById('btn-toggle-collapse');
+const collapseChevron = document.getElementById('collapse-chevron');
+const collapseText = document.getElementById('collapse-text');
+const targetedPanelHeader = document.getElementById('targeted-panel-header');
+
+function togglePanelCollapse(e) {
+  if (e && e.target && (e.target.id === 'btn-reset-selection' || e.target.closest('#btn-reset-selection'))) {
+    return;
+  }
+  isPanelCollapsed = !isPanelCollapsed;
+  if (targetedPanel) {
+    targetedPanel.classList.toggle('collapsed', isPanelCollapsed);
+  }
+  if (collapseText) {
+    collapseText.textContent = isPanelCollapsed ? 'DÉROULER' : 'PLIER';
+  }
+}
+
+if (btnToggleCollapse) {
+  btnToggleCollapse.addEventListener('click', (e) => {
+    e.stopPropagation();
+    togglePanelCollapse(e);
+  });
+}
+
+if (targetedPanelHeader) {
+  targetedPanelHeader.addEventListener('click', (e) => {
+    togglePanelCollapse(e);
   });
 }
 
