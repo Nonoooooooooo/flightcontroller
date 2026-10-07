@@ -781,6 +781,112 @@ async function fetchAircraftDetails(icao24) {
   return fallback;
 }
 
+// Generic fallback photos for most common commercial aircraft models
+const GENERIC_AIRCRAFT_PHOTOS = {
+  A320: {
+    src: 'https://images.unsplash.com/photo-1542296332-2e4473faf563?auto=format&fit=crop&w=700&q=80',
+    model: 'Airbus A320 / A321',
+    credit: 'Photo d\'illustration'
+  },
+  A350: {
+    src: 'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?auto=format&fit=crop&w=700&q=80',
+    model: 'Airbus A350 XWB',
+    credit: 'Photo d\'illustration'
+  },
+  A380: {
+    src: 'https://images.unsplash.com/photo-1517999144091-3d9dca6d1e43?auto=format&fit=crop&w=700&q=80',
+    model: 'Airbus A380',
+    credit: 'Photo d\'illustration'
+  },
+  A330: {
+    src: 'https://images.unsplash.com/photo-1579294800821-694d95e86143?auto=format&fit=crop&w=700&q=80',
+    model: 'Airbus A330',
+    credit: 'Photo d\'illustration'
+  },
+  B737: {
+    src: 'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?auto=format&fit=crop&w=700&q=80',
+    model: 'Boeing 737 / MAX',
+    credit: 'Photo d\'illustration'
+  },
+  B777: {
+    src: 'https://images.unsplash.com/photo-1520437358207-323b43b50729?auto=format&fit=crop&w=700&q=80',
+    model: 'Boeing 777',
+    credit: 'Photo d\'illustration'
+  },
+  B787: {
+    src: 'https://images.unsplash.com/photo-1569629743817-70d8db6c323b?auto=format&fit=crop&w=700&q=80',
+    model: 'Boeing 787 Dreamliner',
+    credit: 'Photo d\'illustration'
+  },
+  B747: {
+    src: 'https://images.unsplash.com/photo-1508873696983-2df5293cb325?auto=format&fit=crop&w=700&q=80',
+    model: 'Boeing 747',
+    credit: 'Photo d\'illustration'
+  },
+  EMBRAER: {
+    src: 'https://images.unsplash.com/photo-1569154941061-e231b4725ef1?auto=format&fit=crop&w=700&q=80',
+    model: 'Embraer E-Jet',
+    credit: 'Photo d\'illustration'
+  },
+  PRIVATE_JET: {
+    src: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?auto=format&fit=crop&w=700&q=80',
+    model: 'Jet d\'Affaires',
+    credit: 'Photo d\'illustration'
+  },
+  GENERIC: {
+    src: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=700&q=80',
+    model: 'Aéronef Commercial',
+    credit: 'Photo d\'illustration'
+  }
+};
+
+function getFallbackPhoto(rawModel = '') {
+  const m = (rawModel || '').toLowerCase();
+  if (m.includes('320') || m.includes('321') || m.includes('319') || m.includes('318') || m.includes('a20n') || m.includes('a21n')) return GENERIC_AIRCRAFT_PHOTOS.A320;
+  if (m.includes('350') || m.includes('359') || m.includes('351') || m.includes('a350')) return GENERIC_AIRCRAFT_PHOTOS.A350;
+  if (m.includes('380') || m.includes('388') || m.includes('a380')) return GENERIC_AIRCRAFT_PHOTOS.A380;
+  if (m.includes('330') || m.includes('332') || m.includes('333') || m.includes('339') || m.includes('a330')) return GENERIC_AIRCRAFT_PHOTOS.A330;
+  if (m.includes('737') || m.includes('b73') || m.includes('738') || m.includes('739') || m.includes('max')) return GENERIC_AIRCRAFT_PHOTOS.B737;
+  if (m.includes('777') || m.includes('b77') || m.includes('77w') || m.includes('772') || m.includes('773')) return GENERIC_AIRCRAFT_PHOTOS.B777;
+  if (m.includes('787') || m.includes('b78') || m.includes('788') || m.includes('789') || m.includes('78x')) return GENERIC_AIRCRAFT_PHOTOS.B787;
+  if (m.includes('747') || m.includes('b74') || m.includes('744') || m.includes('748')) return GENERIC_AIRCRAFT_PHOTOS.B747;
+  if (m.includes('erj') || m.includes('e190') || m.includes('e195') || m.includes('e175') || m.includes('embraer')) return GENERIC_AIRCRAFT_PHOTOS.EMBRAER;
+  if (m.includes('falcon') || m.includes('citation') || m.includes('gulfstream') || m.includes('challenger') || m.includes('learjet') || m.includes('global')) return GENERIC_AIRCRAFT_PHOTOS.PRIVATE_JET;
+  return GENERIC_AIRCRAFT_PHOTOS.GENERIC;
+}
+
+const photoCache = new Map();
+
+async function fetchAircraftPhoto(icao24, model = '') {
+  if (!icao24) return getFallbackPhoto(model);
+  const key = icao24.toLowerCase().trim();
+  if (photoCache.has(key)) return photoCache.get(key);
+
+  try {
+    const res = await fetch(`/planespotters/hex/${key}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.photos && data.photos.length > 0) {
+        const p = data.photos[0];
+        const photoData = {
+          src: p.thumbnail_large?.src || p.thumbnail?.src,
+          photographer: p.photographer || 'Planespotters',
+          link: p.link || `https://www.planespotters.net/hex/${key}`,
+          isReal: true
+        };
+        photoCache.set(key, photoData);
+        return photoData;
+      }
+    }
+  } catch (err) {
+    console.warn('Planespotters fetch failed, using fallback:', err);
+  }
+
+  const fallback = { ...getFallbackPhoto(model), isReal: false, link: `https://www.planespotters.net/hex/${key}` };
+  photoCache.set(key, fallback);
+  return fallback;
+}
+
 // Primary Flight Display (PFD) removed for sober avionics layout
 function drawPFD(plane) {
   // Horizon artificiel désactivé
@@ -1782,6 +1888,21 @@ async function updateFocusedPlaneUI(plane) {
       <div class="closest-plane-details">
         <div class="badge">${plane.callsign}</div>
 
+        <!-- Aircraft Photo Card (Planespotters.net & Modèle) -->
+        <div class="plane-photo-card" id="plane-photo-card">
+          <div class="photo-loading-placeholder" id="photo-loading">
+            <span class="photo-pulse-icon">📷</span>
+            <span>CHARGEMENT DE LA PHOTO DE L'APPAREIL...</span>
+          </div>
+          <a id="photo-link" href="#" target="_blank" rel="noopener noreferrer" class="photo-link hidden" title="Cliquer pour voir la fiche officielle en haute définition">
+            <img id="photo-img" class="photo-img" alt="Photo de l'appareil ${plane.callsign}" />
+            <div class="photo-overlay">
+              <span class="photo-tag-badge" id="photo-badge">📷 PHOTO RÉELLE</span>
+              <span class="photo-credit-text" id="photo-credit">© Planespotters.net</span>
+            </div>
+          </a>
+        </div>
+
         <!-- Hero Route Card: Provenance & Destination Mises en Avant -->
         <div class="route-hero-card">
           <div class="route-hero-header">
@@ -1846,6 +1967,44 @@ async function updateFocusedPlaneUI(plane) {
         </div>
       </div>
     `;
+
+    // Load photo asynchronously
+    fetchAircraftPhoto(plane.icao24, '').then(photoData => {
+      if (photoData) {
+        const photoImg = document.getElementById('photo-img');
+        const photoLink = document.getElementById('photo-link');
+        const photoLoading = document.getElementById('photo-loading');
+        const photoBadge = document.getElementById('photo-badge');
+        const photoCredit = document.getElementById('photo-credit');
+
+        if (photoImg && photoLoading && photoLink) {
+          photoImg.src = photoData.src;
+          photoImg.onload = () => {
+            photoLoading.classList.add('hidden');
+            photoLink.classList.remove('hidden');
+          };
+          photoImg.onerror = () => {
+            const fallback = getFallbackPhoto('');
+            photoImg.src = fallback.src;
+            if (photoBadge) {
+              photoBadge.textContent = '📷 ILLUSTRATION';
+              photoBadge.classList.add('illustration');
+            }
+            if (photoCredit) photoCredit.textContent = fallback.credit;
+            photoLoading.classList.add('hidden');
+            photoLink.classList.remove('hidden');
+          };
+          if (photoLink) photoLink.href = photoData.link || `https://www.planespotters.net/hex/${plane.icao24}`;
+          if (photoBadge) {
+            photoBadge.textContent = photoData.isReal ? '📷 PHOTO RÉELLE' : '📷 ILLUSTRATION';
+            photoBadge.classList.toggle('illustration', !photoData.isReal);
+          }
+          if (photoCredit) {
+            photoCredit.textContent = photoData.photographer ? `© ${photoData.photographer}` : photoData.credit;
+          }
+        }
+      }
+    });
   }
 
   const initialRoute = getEstimatedRoute(plane);
@@ -1869,6 +2028,9 @@ async function updateFocusedPlaneUI(plane) {
       const elOperator = document.getElementById('closest-operator');
       if (elModel) elModel.textContent = details.model;
       if (elOperator && details.operator) elOperator.textContent = details.operator;
+      
+      // Update photo with precise model if fallback was needed
+      fetchAircraftPhoto(plane.icao24, details.model);
     }
   });
 }

@@ -2,6 +2,10 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
+      "source": "/planespotters/:path*",
+      "destination": "/api/planespotters/:path*"
+    },
+    {
       "source": "/hexdb/:path*",
       "destination": "/api/hexdb/:path*"
     },
